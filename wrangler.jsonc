@@ -1,0 +1,67 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "customer-kb",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-06-01",
+
+  // Required by @anthropic-ai/sdk (imports node:path). Without it the Worker deploys fine and
+  // throws on the first real run.
+  "compatibility_flags": ["nodejs_compat"],
+
+  "observability": { "enabled": true },
+
+  // A backfill (30 days for everyone) makes thousands of requests in one run.
+  "limits": { "subrequests": 50000 },
+
+  // One "tick" every 15 minutes. Each tick does a bounded slice of work (pull new
+  // conversations, extract insights from a few) and, once it's Tuesday 6pm Pacific or later,
+  // advances that week's report run. Small ticks instead of one big Tuesday job because a
+  // single Worker invocation is capped at 15 minutes and a week of transcripts won't fit in one.
+  // Ticking all week also keeps the free Supabase project from pausing (it sleeps after
+  // 7 idle days).
+  "triggers": { "crons": ["*/15 * * * *"] },
+
+  "vars": {
+    // Reads each conversation and writes the weekly reports.
+    "ANTHROPIC_MODEL": "claude-sonnet-5-5",
+    // Writes the Account Briefs (months of history into one judgment).
+    "BRIEF_MODEL": "claude-opus-5-5",
+
+    // When the weekly report goes out, in Pacific time. 2 = Tuesday.
+    "REPORT_WEEKDAY": "2",
+    "REPORT_HOUR_PT": "18",
+
+    // How far back the first run (or a new sign-in) reaches, for every source.
+    "BACKFILL_DAYS": "30",
+
+    // Notion data sources (customers, insights, reports, digests).
+    "NOTION_CUSTOMERS_DS": "00000000-0000-0000-0000-000000000064",
+    "NOTION_INSIGHTS_DS": "00000000-0000-0000-0000-000000000065",
+    "NOTION_REPORTS_DS": "00000000-0000-0000-0000-000000000066",
+    "NOTION_DIGESTS_DS": "00000000-0000-0000-0000-000000000067",
+    "NOTION_PROMPTS_PAGE": "00000000-0000-0000-0000-000000000068",
+
+    "SUPABASE_URL": "https://YOUR_PROJECT.supabase.co",
+
+    // Our own domain; anyone on it is the Alleviate team.
+    "HOME_DOMAIN": "example.com",
+
+    // Extra domain -> Attio record id aliases that Attio doesn't list (e.g. ExampleCare emails
+    // from examplecare.co but Attio has examplecare.health). Format: domain=record_id,domain=record_id
+    "DOMAIN_ALIASES": "examplecare.co=00000000-0000-0000-0000-000000000069",
+
+    // Extra names a call or chat title might use for a customer, when the Attio name won't match
+    // ("Q7/Alleviate: Pilot Sync"). Format: nickname=Attio customer name, comma separated.
+    // Keep nicknames distinctive: "DM" would also match every "Google Chat DM ..." title.
+    "NAME_ALIASES": "Q7=Q7 Medical Research,Wellspring Health=Welspring Health,Lakeside Research=Lakeside Research,Lakeside Clinical=Lakeside Research,wellspring=Welspring Health,oakridge=Oakridge Clinical,ucn=Unity Clinical Network,meridiantrials=Meridian Clinical Trials,lakeside=Lakeside Research,Anchor=Anchor Clinical Solutions",
+
+    // Slack channels to read besides the "<customer>-deploy" ones, e.g. a channel shared with a
+    // customer. Format: channel id or channel name=customer name or nickname, comma separated.
+    // Private channels are read only if the bot is already in them (Yoshi, Nov 11: don't add it to
+    // customer channels).
+    "SLACK_EXTRA_CHANNELS": "C0000000070=Harbor Clinical",
+    "SLACK_SKIP_CHANNELS": "random-social=social,ops-alerts=bot alert feed,sync-failures=bot alert feed,sensitive-escalations=contains personal data"
+  }
+
+  // Secrets: set with `npx wrangler secret put NAME`. See .dev.vars.example for the list.
+}

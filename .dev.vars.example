@@ -1,0 +1,26 @@
+# Secrets for the Worker. In production set each with:  npx wrangler secret put NAME
+# For local `wrangler dev`, copy this file to .dev.vars and fill it in (never commit .dev.vars).
+
+# Claude API key for this project only (console.anthropic.com -> API keys).
+ANTHROPIC_API_KEY=
+
+# Notion internal integration for this project. After creating it, open the
+# "Customer Account Knowledge Bank" page -> ... -> Connections -> add the integration.
+NOTION_TOKEN=
+
+# Supabase -> Project Settings -> API -> service_role key (server only, never share).
+SUPABASE_SERVICE_KEY=
+
+# Attio API key with read access to Companies.
+ATTIO_API_KEY=
+
+# Pylon API token (Pylon -> Settings -> API tokens). Optional; Pylon source is skipped if empty.
+PYLON_API_TOKEN=
+
+# Slack bot token (xoxb-...) with chat:write, and the bot invited to the channel.
+# Optional; the Slack post is skipped if empty.
+SLACK_BOT_TOKEN=
+SLACK_CHANNEL_ID=
+
+# Password for the manual routes (/run, /status, /connect/bluedot). Pick any long random string.
+ADMIN_TOKEN=
